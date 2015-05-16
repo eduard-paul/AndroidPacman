@@ -1,17 +1,35 @@
 package com.example.edward.pacman;
 
+import android.os.Handler;
+import android.os.Message;
 import android.support.v7.app.ActionBarActivity;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.view.View;
+
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.LinkedBlockingQueue;
 
 
 public class MainActivity extends ActionBarActivity {
 
+    String TAG = "PacMain";
+    Handler in, out;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+        in = new Handler() {
+            @Override
+            public void handleMessage(Message msg) {
+                super.handleMessage(msg);
+                Log.d(TAG,Integer.toString(msg.what));
+            }
+        };
+        User user = new User(in);
+        out = user.getHandler();
     }
 
     @Override
@@ -34,5 +52,9 @@ public class MainActivity extends ActionBarActivity {
         }
 
         return super.onOptionsItemSelected(item);
+    }
+
+    public void onClick(View view) {
+        out.sendMessage(out.obtainMessage(1,1,0));
     }
 }
