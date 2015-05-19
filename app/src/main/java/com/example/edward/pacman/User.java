@@ -23,8 +23,13 @@ public class User extends Thread {
                 super.handleMessage(msg);
                 Log.d(TAG,Integer.toString(msg.what));
                 out.sendEmptyMessage(2);
-                if (msg.what == 1){
-                    CreateRoom("Roomname",msg.arg1);
+                switch (msg.what) {
+                    case 1:
+                        CreateRoom("Roomname",msg.arg1);
+                        break;
+                    case 2:
+                        LeaveRoom();
+                        break;
                 }
             }
         };
