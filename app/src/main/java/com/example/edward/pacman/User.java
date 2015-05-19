@@ -7,7 +7,7 @@ import android.util.Log;
 /**
  * Created by edward on 16.05.15.
  */
-public class User {
+abstract public class User {
     public static final int NEW_ROOM = 1;
     public static final int LEAVE_ROOM = 2;
     public static final int START_GAME = 3;
@@ -22,80 +22,26 @@ public class User {
     String myRoomName = "";
     Room myRoom = null;
     int playerId = -1;
-    Handler in, out;
 
-    User(Handler handler) {
-        playerId = 1;
-        out = handler;
-        in = new Handler(){
-            @Override
-            public void handleMessage(Message msg) {
-                super.handleMessage(msg);
-                Log.d(TAG, Integer.toString(msg.what));
-                switch (msg.what) {
-                    case 1:
-                        CreateRoom("Roomname",msg.arg1);
-                        break;
-                    case 2:
-                        LeaveRoom();
-                        break;
-                    case TURN:
-                        myRoom.Command(msg.arg1,playerId);
-                        break;
-                }
-            }
-        };
-    }
+    public abstract Handler getHandler();
 
-    public Handler getHandler() {
-        return in;
-    }
+    public abstract void SendBoard(int[][] board);
 
-    public void SendBoard(int[][] board) {
+    public abstract void LeaveRoom();
 
-    }
+    public abstract void CustomRoom(String line);
 
-    public synchronized void LeaveRoom() {
-        if ("spectate".equals(myRoomName))
-            myRoom.RemoveSpectator(this);
-        else
-            myRoom.RemovePlayer(this);
-        myRoomName = "";
-        myRoom = null;
-        playerId = -1;
-    }
+    public abstract void CreateRoom(String name, int maxPlayers);
 
-    public synchronized void CustomRoom(String line) {
+    public abstract void EnterRoom(String line);
 
-    }
+    public abstract void SpectateRoom(String line);
 
-    public synchronized void CreateRoom(String name, int maxPlayers) {
-        myRoom = new Room(name, maxPlayers, this);
-        myRoomName = name;
-    }
+    public abstract void SendRoomList();
 
-    public synchronized void EnterRoom(String line) {
+    public abstract void close();
 
-    }
+    public abstract void SendState(GameState gs);
 
-    public synchronized void SpectateRoom(String line) {
-
-    }
-
-    public void SendRoomList() {
-        out.sendEmptyMessage(3);
-    }
-
-    public synchronized void close() {
-
-    }
-
-    public void SendState(GameState gs) {
-        Message msg = out.obtainMessage(GAME_STATE,gs);
-        out.sendMessage(msg);
-    }
-
-    public void SendStart() {
-        out.sendEmptyMessage(START_GAME);
-    }
+    public abstract void SendStart();
 }

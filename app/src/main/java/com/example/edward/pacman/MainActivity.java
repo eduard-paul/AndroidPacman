@@ -5,6 +5,7 @@ import android.content.Intent;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
+import android.graphics.RectF;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
@@ -76,7 +77,7 @@ public class MainActivity extends ActionBarActivity {
                 }
             }
         };
-        user = new User(in);
+        user = new LocalUser(in);
         out = user.getHandler();
         out.sendMessage(out.obtainMessage(User.NEW_ROOM, 1, 0));
     }
@@ -155,11 +156,13 @@ public class MainActivity extends ActionBarActivity {
         class DrawView extends View {
             Paint p;
             int x = -1 ,y = -1;
+            int timer = 0;
 
             public DrawView(Context context) {
                 super(context);
                 p = new Paint();
                 p.setTextSize(200);
+                p.setAntiAlias(true);
             }
 
             @Override
@@ -194,6 +197,12 @@ public class MainActivity extends ActionBarActivity {
                 for (Iterator iterator = gs.cs.iterator(); iterator.hasNext(); ) {
                     CharacterState ch =  (CharacterState)iterator.next();
                     p.setColor(Color.DKGRAY);
+                    int x = ch.cell.x * cellSize + cellSize/2;
+                    int y = ch.cell.y * cellSize + cellSize/2;
+                    if (Math.abs(ch.direction) > 1)
+                        x += (ch.dist * cellSize / 2);
+                    else
+                        y += (ch.dist * cellSize / 2);
                     switch (ch.id) {
                         case 1:
                             p.setColor(Color.YELLOW);
@@ -222,13 +231,32 @@ public class MainActivity extends ActionBarActivity {
                         default:
                             break;
                     }
-                    int x = ch.cell.x * cellSize + cellSize/2;
-                    int y = ch.cell.y * cellSize + cellSize/2;
-                    if (Math.abs(ch.direction) > 1)
-                        x += (ch.dist * cellSize / 2);
-                    else
-                        y += (ch.dist * cellSize / 2);
-                    canvas.drawCircle(y, x, cellSize / 2, p);
+                    final RectF oval = new RectF();
+                    oval.set(y - cellSize / 2, x - cellSize / 2, y + cellSize / 2, x + cellSize / 2);
+                    if (ch.id>0) {
+                        timer = (timer+1)%10;
+                        float tmp = (float)timer/5;
+                        if (timer>5) tmp = (float)(10-timer)/5;
+                        float direction=0;
+                        switch (ch.direction){
+                            case 1:
+                                direction = 0;
+                                break;
+                            case -1:
+                                direction = 180;
+                                break;
+                            case 2:
+                                direction = 90;
+                                break;
+                            case -2:
+                                direction = 270;
+                                break;
+                        }
+                        canvas.drawArc(oval,55*tmp+direction,360-110*tmp,true,p);
+                    } else {
+                        canvas.drawArc(oval, 180, 180, true, p);
+                        canvas.drawRect(y-cellSize/2,x,y+cellSize/2,x+cellSize/2,p);
+                    }
                 }
 
                 p.setColor(Color.WHITE);
