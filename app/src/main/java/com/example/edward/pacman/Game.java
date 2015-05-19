@@ -146,13 +146,6 @@ public class Game extends  Thread{
         this.ghostsStartPoints = defaultGhostsStartPoints;
         this.playersNum = playersNum;
         board = new Board();
-        for (int[] row : board.board) {
-            for (int i : row) {
-                if (i == 0) {
-                    totalFood++;
-                }
-            }
-        }
         for (int i = 0; i < board.board.length; i++) {
             for (int j = 0; j < board.board[0].length; j++) {
                 if (board.board[i][j] == 0) {
@@ -161,6 +154,7 @@ public class Game extends  Thread{
                 }
             }
         }
+        totalFood *= 0.1;
     }
 
     public Game(CustomBoard cb) {
@@ -168,13 +162,6 @@ public class Game extends  Thread{
         this.playersStartPoints = cb.playersStartPoints.toArray(new Point[0]);
         this.ghostsStartPoints = cb.ghostsStartPoints.toArray(new Point[0]);
         board = new Board(cb);
-        for (int[] row : board.board) {
-            for (int i : row) {
-                if (i != -1) {
-                    totalFood++;
-                }
-            }
-        }
         for (int i = 0; i < board.board.length; i++) {
             for (int j = 0; j < board.board[0].length; j++) {
                 if (board.board[i][j] != -1) {
@@ -217,6 +204,7 @@ public class Game extends  Thread{
             Character player = characters.get(i);
             player.Setter(playersStartPoints[i], direction,
                     DefaultSpeed);
+            player.winnerId = 0;
         }
         for (int i = playersNum; i < playersNum + ghostsNum; i++) {
             int direction = 1;
@@ -302,6 +290,7 @@ public class Game extends  Thread{
         protected int speed;
         protected int desiredDirection;
         protected int myFood = -1;
+        protected int winnerId = 0;
 
         public CharacterState getCharState() {
             CharacterState s = new CharacterState();
@@ -310,6 +299,7 @@ public class Game extends  Thread{
             s.dist = dist;
             s.direction = direction;
             s.speed = speed;
+            s.winnerId = winnerId;
             return s;
         }
 
@@ -433,6 +423,7 @@ public class Game extends  Thread{
                         catchedPlayers++;
                         if (catchedPlayers == playersNum) {
                             restarting = true;
+                            characters.get(0).winnerId = -1;
                         }
                     } else {
                         board.setCellState(cell, 0);
@@ -541,6 +532,7 @@ public class Game extends  Thread{
                         catchedPlayers++;
                         if (catchedPlayers == playersNum) {
                             restarting = true;
+                            characters.get(0).winnerId = -1;
                         }
                     }
                     if (foodFlag)
@@ -657,17 +649,19 @@ public class Game extends  Thread{
     }
 
     public void ShowResults() {
+        int maxId = -1;
         for (int i = 0; i < playersNum - catchedPlayers; i++) {
             Character max = characters.get(0);
             for (Character character : characters) {
                 if (max.myFood <= character.myFood && character.speed != 0)
                     max = character;
             }
+            if (i==0) maxId = max.id;
             max.myFood = 0;
             max.speed = 0;
             max.dist = 0;
             max.cell = new Point(0, i);
-
+            max.winnerId = maxId;
         }
         restarting = true;
     }

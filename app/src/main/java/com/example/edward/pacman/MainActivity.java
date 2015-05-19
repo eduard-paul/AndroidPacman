@@ -27,29 +27,12 @@ public class MainActivity extends ActionBarActivity {
     static Handler in, out;
     private View mDecorView;
     static GameState gs;
+    static int winOrLose = 0;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         mDecorView = getWindow().getDecorView();
         setContentView(R.layout.activity_main);
-        in = new Handler() {
-            @Override
-            public void handleMessage(Message msg) {
-                super.handleMessage(msg);
-                Log.d(TAG,Integer.toString(msg.what));
-                switch (msg.what){
-                    case User.GAME_STATE:
-                        gs = (GameState)msg.obj;
-                        break;
-                    case User.START_GAME:
-                        Intent intent = new Intent(MainActivity.this,PlayingActivity.class);
-                        startActivity(intent);
-                        break;
-                }
-            }
-        };
-        User user = new User(in);
-        out = user.getHandler();
     }
 
     @Override
@@ -65,29 +48,36 @@ public class MainActivity extends ActionBarActivity {
         }
     }
 
-    @Override
-    public boolean onCreateOptionsMenu(Menu menu) {
-        // Inflate the menu; this adds items to the action bar if it is present.
-        getMenuInflater().inflate(R.menu.menu_main, menu);
-        return true;
-    }
-
-    @Override
-    public boolean onOptionsItemSelected(MenuItem item) {
-        // Handle action bar item clicks here. The action bar will
-        // automatically handle clicks on the Home/Up button, so long
-        // as you specify a parent activity in AndroidManifest.xml.
-        int id = item.getItemId();
-
-        //noinspection SimplifiableIfStatement
-        if (id == R.id.action_settings) {
-            return true;
-        }
-
-        return super.onOptionsItemSelected(item);
-    }
-
+    User user;
     public void onClick(View view) {
+        in = new Handler() {
+            @Override
+            public void handleMessage(Message msg) {
+                super.handleMessage(msg);
+                Log.d(TAG,Integer.toString(msg.what));
+                switch (msg.what){
+                    case User.GAME_STATE:
+                        gs = (GameState)msg.obj;
+                        if (gs.cs.size()!=0){
+                            if(gs.cs.get(0).winnerId==0) {
+                                winOrLose = 0;
+                            } else if(gs.cs.get(0).winnerId == user.playerId){
+                                winOrLose = 1;
+                            } else {
+                                winOrLose = -1;
+                            }
+                        }
+
+                        break;
+                    case User.START_GAME:
+                        Intent intent = new Intent(MainActivity.this,PlayingActivity.class);
+                        startActivity(intent);
+                        break;
+                }
+            }
+        };
+        user = new User(in);
+        out = user.getHandler();
         out.sendMessage(out.obtainMessage(User.NEW_ROOM, 1, 0));
     }
 
@@ -98,6 +88,7 @@ public class MainActivity extends ActionBarActivity {
     public static class PlayingActivity extends ActionBarActivity {
         private View mDecorView;
         private DrawView drawView;
+        private DisplayMetrics displayMetrics;
         private static final int PINK = Color.rgb(255, 182, 193);
         private static final int LIGHT_BLUE = Color.rgb(132,112,255);
         private static final int ORANGE = Color.rgb(255,102,0);
@@ -111,12 +102,35 @@ public class MainActivity extends ActionBarActivity {
             setContentView(drawView);
 
             Display display = getWindowManager().getDefaultDisplay();
-            DisplayMetrics displayMetrics = new DisplayMetrics();
+            displayMetrics = new DisplayMetrics();
             display.getMetrics(displayMetrics);
 
             int cS1 = displayMetrics.heightPixels/31;
             int cS2 = displayMetrics.widthPixels/28;
             cellSize = Math.min(cS1,cS2);
+
+            drawView.setOnTouchListener(new OnSwipeTouchListener(this){
+                @Override
+                public void onSwipeRight() {
+                    out.sendMessage(out.obtainMessage(User.TURN,User.RIGHT,0));
+                }
+
+                @Override
+                public void onSwipeLeft() {
+                    out.sendMessage(out.obtainMessage(User.TURN,User.LEFT,0));
+                }
+
+                @Override
+                public void onSwipeTop() {
+                    out.sendMessage(out.obtainMessage(User.TURN, User.UP, 0));
+
+                }
+
+                @Override
+                public void onSwipeBottom() {
+                    out.sendMessage(out.obtainMessage(User.TURN, User.DOWN, 0));
+                }
+            });
         }
 
         @Override
@@ -138,12 +152,6 @@ public class MainActivity extends ActionBarActivity {
             }
         }
 
-        @Override
-        public boolean onTouchEvent(MotionEvent event) {
-            drawView.drawPoint((int)event.getX(),(int)event.getY());
-            return super.onTouchEvent(event);
-        }
-
         class DrawView extends View {
             Paint p;
             int x = -1 ,y = -1;
@@ -151,6 +159,7 @@ public class MainActivity extends ActionBarActivity {
             public DrawView(Context context) {
                 super(context);
                 p = new Paint();
+                p.setTextSize(200);
             }
 
             @Override
@@ -222,6 +231,14 @@ public class MainActivity extends ActionBarActivity {
                     canvas.drawCircle(y, x, cellSize / 2, p);
                 }
 
+                p.setColor(Color.WHITE);
+                if (winOrLose == 1){
+                    canvas.drawText("You win!",displayMetrics.widthPixels/5,
+                            displayMetrics.heightPixels/2,p);
+                } else if (winOrLose == -1){
+                    canvas.drawText("You lose!",displayMetrics.widthPixels/5,
+                            displayMetrics.heightPixels/2,p);
+                }
                 invalidate();
             }
 

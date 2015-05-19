@@ -7,11 +7,17 @@ import android.util.Log;
 /**
  * Created by edward on 16.05.15.
  */
-public class User extends Thread {
+public class User {
     public static final int NEW_ROOM = 1;
     public static final int LEAVE_ROOM = 2;
     public static final int START_GAME = 3;
     public static final int GAME_STATE = 4;
+    public static final int TURN = 5;
+    public static final int RIGHT = 1;
+    public static final int LEFT = -1;
+    public static final int UP = 2;
+    public static final int DOWN = -2;
+
     String TAG = "PacUser";
     String myRoomName = "";
     Room myRoom = null;
@@ -33,16 +39,12 @@ public class User extends Thread {
                     case 2:
                         LeaveRoom();
                         break;
+                    case TURN:
+                        myRoom.Command(msg.arg1,playerId);
+                        break;
                 }
             }
         };
-    }
-
-    @Override
-    public void run() {
-        while (true) {
-
-        }
     }
 
     public Handler getHandler() {

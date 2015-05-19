@@ -8,7 +8,7 @@ import android.os.Parcelable;
  * Created by edward on 16.05.15.
  */
 public class CharacterState implements Parcelable{
-    public int id;
+    public int id, winnerId;
     public Point cell;
     public double dist;
     public int direction, speed;

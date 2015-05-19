@@ -29,14 +29,14 @@ public class Room {
         return isStarted;
     }
 
-    public void Command(String line, int id) {
-        if ("Up".equals(line)) {
+    public void Command(int dir, int id) {
+        if (User.UP == dir) {
             game.GoUp(id);
-        } else if ("Down".equals(line)) {
+        } else if (User.DOWN == dir) {
             game.GoDown(id);
-        } else if ("Left".equals(line)) {
+        } else if (User.LEFT == dir) {
             game.GoLeft(id);
-        } else if ("Right".equals(line)) {
+        } else if (User.RIGHT == dir) {
             game.GoRight(id);
         }
     }
