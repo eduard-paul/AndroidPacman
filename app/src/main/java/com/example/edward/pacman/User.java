@@ -8,6 +8,10 @@ import android.util.Log;
  * Created by edward on 16.05.15.
  */
 public class User extends Thread {
+    public static final int NEW_ROOM = 1;
+    public static final int LEAVE_ROOM = 2;
+    public static final int START_GAME = 3;
+    public static final int GAME_STATE = 4;
     String TAG = "PacUser";
     String myRoomName = "";
     Room myRoom = null;
@@ -21,8 +25,7 @@ public class User extends Thread {
             @Override
             public void handleMessage(Message msg) {
                 super.handleMessage(msg);
-                Log.d(TAG,Integer.toString(msg.what));
-                out.sendEmptyMessage(2);
+                Log.d(TAG, Integer.toString(msg.what));
                 switch (msg.what) {
                     case 1:
                         CreateRoom("Roomname",msg.arg1);
@@ -86,10 +89,11 @@ public class User extends Thread {
     }
 
     public void SendState(GameState gs) {
-        out.sendEmptyMessage(4);
+        Message msg = out.obtainMessage(GAME_STATE,gs);
+        out.sendMessage(msg);
     }
 
     public void SendStart() {
-        out.sendEmptyMessage(0);
+        out.sendEmptyMessage(START_GAME);
     }
 }
