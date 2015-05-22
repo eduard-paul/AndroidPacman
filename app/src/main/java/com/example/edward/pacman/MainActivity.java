@@ -1,11 +1,16 @@
 package com.example.edward.pacman;
 
+import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.RectF;
+import android.net.wifi.p2p.WifiP2pConfig;
+import android.net.wifi.p2p.WifiP2pDevice;
+import android.net.wifi.p2p.WifiP2pManager;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
@@ -13,11 +18,9 @@ import android.support.v7.app.ActionBarActivity;
 import android.util.DisplayMetrics;
 import android.util.Log;
 import android.view.Display;
-import android.view.Menu;
-import android.view.MenuItem;
-import android.view.MotionEvent;
 import android.view.View;
 
+import java.util.Collection;
 import java.util.Iterator;
 
 
@@ -25,15 +28,35 @@ public class MainActivity extends ActionBarActivity {
 
 
     String TAG = "PacMain";
-    static Handler in, out;
+    static Handler hIn, hOut;
     private View mDecorView;
     static GameState gs;
     static int winOrLose = 0;
+    WifiP2pManager mManager;
+    WifiP2pManager.Channel mChannel;
+    BroadcastReceiver mReceiver;
+    IntentFilter mIntentFilter;
+    public boolean isServer;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         mDecorView = getWindow().getDecorView();
         setContentView(R.layout.activity_main);
+        handlerIOInit();
+        wifiInit();
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        registerReceiver(mReceiver, mIntentFilter);
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        unregisterReceiver(mReceiver);
     }
 
     @Override
@@ -51,18 +74,63 @@ public class MainActivity extends ActionBarActivity {
 
     User user;
     public void onClick(View view) {
-        in = new Handler() {
+        switch (view.getId()) {
+            case R.id.button:
+                hOut.sendMessage(hOut.obtainMessage(User.NEW_ROOM, 1, 0));
+                break;
+            case R.id.button2:
+                mManager.discoverPeers(mChannel, new WifiP2pManager.ActionListener() {
+                    @Override
+                    public void onSuccess() {
+                        Log.d(TAG, "discoverPeers onSuccess");
+                        isServer = true;
+                    }
+                    @Override
+                    public void onFailure(int reasonCode) {
+                        Log.d(TAG, "discoverPeers onFailure");
+                    }
+                });
+                break;
+            case R.id.button3:
+                isServer = false;
+                Collection<WifiP2pDevice> devices =
+                        ((WiFiDirectBroadcastReceiver) mReceiver).getDevices();
+                if (devices.size()==0) return;
+                Iterator<WifiP2pDevice> iterator = devices.iterator();
+                WifiP2pDevice device = iterator.next();
+                WifiP2pConfig config = new WifiP2pConfig();
+                config.deviceAddress = device.deviceAddress;
+                mManager.connect(mChannel, config, new WifiP2pManager.ActionListener() {
+
+                    @Override
+                    public void onSuccess() {
+                        //success logic
+                        Log.d(TAG, "connect onSuccess");
+                    }
+
+                    @Override
+                    public void onFailure(int reason) {
+                        //failure logic
+                        Log.d(TAG, "connect onFailure");
+                    }
+                });
+                break;
+        }
+    }
+
+    private void handlerIOInit() {
+        hIn = new Handler() {
             @Override
             public void handleMessage(Message msg) {
                 super.handleMessage(msg);
-                Log.d(TAG,Integer.toString(msg.what));
-                switch (msg.what){
+                Log.d(TAG, Integer.toString(msg.what));
+                switch (msg.what) {
                     case User.GAME_STATE:
-                        gs = (GameState)msg.obj;
-                        if (gs.cs.size()!=0){
-                            if(gs.cs.get(0).winnerId==0) {
+                        gs = (GameState) msg.obj;
+                        if (gs.cs.size() != 0) {
+                            if (gs.cs.get(0).winnerId == 0) {
                                 winOrLose = 0;
-                            } else if(gs.cs.get(0).winnerId == user.playerId){
+                            } else if (gs.cs.get(0).winnerId == user.playerId) {
                                 winOrLose = 1;
                             } else {
                                 winOrLose = -1;
@@ -71,18 +139,27 @@ public class MainActivity extends ActionBarActivity {
 
                         break;
                     case User.START_GAME:
-                        Intent intent = new Intent(MainActivity.this,PlayingActivity.class);
+                        Intent intent = new Intent(MainActivity.this, PlayingActivity.class);
                         startActivity(intent);
                         break;
                 }
             }
         };
-        user = new LocalUser(in);
-        out = user.getHandler();
-        out.sendMessage(out.obtainMessage(User.NEW_ROOM, 1, 0));
+        user = new LocalUser(hIn);
+        hOut = user.getHandler();
     }
 
+    private void wifiInit() {
+        mManager = (WifiP2pManager) getSystemService(Context.WIFI_P2P_SERVICE);
+        mChannel = mManager.initialize(this, getMainLooper(), null);
+        mReceiver = new WiFiDirectBroadcastReceiver(mManager, mChannel, this);
 
+        mIntentFilter = new IntentFilter();
+        mIntentFilter.addAction(WifiP2pManager.WIFI_P2P_STATE_CHANGED_ACTION);
+        mIntentFilter.addAction(WifiP2pManager.WIFI_P2P_PEERS_CHANGED_ACTION);
+        mIntentFilter.addAction(WifiP2pManager.WIFI_P2P_CONNECTION_CHANGED_ACTION);
+        mIntentFilter.addAction(WifiP2pManager.WIFI_P2P_THIS_DEVICE_CHANGED_ACTION);
+    }
 //////////////////////////////////
 
 
@@ -113,23 +190,23 @@ public class MainActivity extends ActionBarActivity {
             drawView.setOnTouchListener(new OnSwipeTouchListener(this){
                 @Override
                 public void onSwipeRight() {
-                    out.sendMessage(out.obtainMessage(User.TURN,User.RIGHT,0));
+                    hOut.sendMessage(hOut.obtainMessage(User.TURN, User.RIGHT, 0));
                 }
 
                 @Override
                 public void onSwipeLeft() {
-                    out.sendMessage(out.obtainMessage(User.TURN,User.LEFT,0));
+                    hOut.sendMessage(hOut.obtainMessage(User.TURN, User.LEFT, 0));
                 }
 
                 @Override
                 public void onSwipeTop() {
-                    out.sendMessage(out.obtainMessage(User.TURN, User.UP, 0));
+                    hOut.sendMessage(hOut.obtainMessage(User.TURN, User.UP, 0));
 
                 }
 
                 @Override
                 public void onSwipeBottom() {
-                    out.sendMessage(out.obtainMessage(User.TURN, User.DOWN, 0));
+                    hOut.sendMessage(hOut.obtainMessage(User.TURN, User.DOWN, 0));
                 }
             });
         }
@@ -137,7 +214,7 @@ public class MainActivity extends ActionBarActivity {
         @Override
         public void onBackPressed() {
             super.onBackPressed();
-            out.sendEmptyMessage(User.LEAVE_ROOM);
+            hOut.sendEmptyMessage(User.LEAVE_ROOM);
         }
 
         @Override

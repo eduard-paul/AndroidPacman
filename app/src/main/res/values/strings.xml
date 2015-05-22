@@ -4,4 +4,6 @@
     <string name="hello_world">Hello world!</string>
     <string name="action_settings">Settings</string>
     <string name="single">Single player</string>
+    <string name="multy_create">Create multyplayer</string>
+    <string name="multy_connect">Connect</string>
 </resources>

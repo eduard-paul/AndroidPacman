@@ -9,13 +9,13 @@ import java.util.TimerTask;
  * Created by edward on 16.05.15.
  */
 public class Room {
-    private String name;
-    private int maxPlayers;
-    private int currPlayers;
-    private Game game;
-    private boolean isStarted = false;
-    private List<User> players = new LinkedList<User>();
-    private List<User> spectators = new LinkedList<User>();
+    protected String name;
+    protected int maxPlayers;
+    protected int currPlayers;
+    protected Game game;
+    protected boolean isStarted = false;
+    protected List<User> players = new LinkedList<User>();
+    protected List<User> spectators = new LinkedList<User>();
     private Timer timer = new java.util.Timer();
 
     private TimerTask task = new TimerTask() {
@@ -37,6 +37,18 @@ public class Room {
         } else if (User.LEFT == dir) {
             game.GoLeft(id);
         } else if (User.RIGHT == dir) {
+            game.GoRight(id);
+        }
+    }
+
+    public void Command(String line, int id) {
+        if ("Up".equals(line)) {
+            game.GoUp(id);
+        } else if ("Down".equals(line)) {
+            game.GoDown(id);
+        } else if ("Left".equals(line)) {
+            game.GoLeft(id);
+        } else if ("Right".equals(line)) {
             game.GoRight(id);
         }
     }

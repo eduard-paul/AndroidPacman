@@ -29,9 +29,9 @@ abstract public class User {
 
     public abstract void LeaveRoom();
 
-    public abstract void CustomRoom(String line);
+//    public abstract void CustomRoom(String line);
 
-    public abstract void CreateRoom(String name, int maxPlayers);
+//    public abstract void CreateRoom(String name, int maxPlayers);
 
     public abstract void EnterRoom(String line);
 
