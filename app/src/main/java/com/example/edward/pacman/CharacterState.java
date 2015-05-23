@@ -1,15 +1,16 @@
 package com.example.edward.pacman;
 
-import android.graphics.Point;
 import android.os.Parcel;
 import android.os.Parcelable;
+
+import java.io.Serializable;
 
 /**
  * Created by edward on 16.05.15.
  */
-public class CharacterState implements Parcelable{
+public class CharacterState implements Parcelable, Serializable{
     public int id, winnerId;
-    public Point cell;
+    public int x, y;
     public double dist;
     public int direction, speed;
 
@@ -18,7 +19,7 @@ public class CharacterState implements Parcelable{
 
     public CharacterState(Parcel parcel) {
         id = parcel.readInt();
-        cell = new Point(parcel.readInt(),parcel.readInt());
+        x = parcel.readInt(); y = parcel.readInt();
         dist = parcel.readDouble();
         direction = parcel.readInt();
         speed = parcel.readInt();
@@ -32,24 +33,24 @@ public class CharacterState implements Parcelable{
     @Override
     public void writeToParcel(Parcel parcel, int i) {
         parcel.writeInt(id);
-        parcel.writeInt(cell.x);
-        parcel.writeInt(cell.y);
+        parcel.writeInt(x);
+        parcel.writeInt(y);
         parcel.writeDouble(dist);
         parcel.writeInt(direction);
         parcel.writeInt(speed);
     }
 
-    public static final Parcelable.Creator<CharacterState> CREATOR
-            = new Parcelable.Creator<CharacterState>(){
-
-        @Override
-        public CharacterState createFromParcel(Parcel parcel) {
-            return (new CharacterState(parcel));
-        }
-
-        @Override
-        public CharacterState[] newArray(int i) {
-            return new CharacterState[i];
-        }
-    };
+//    public static final Parcelable.Creator<CharacterState> CREATOR
+//            = new Parcelable.Creator<CharacterState>(){
+//
+//        @Override
+//        public CharacterState createFromParcel(Parcel parcel) {
+//            return (new CharacterState(parcel));
+//        }
+//
+//        @Override
+//        public CharacterState[] newArray(int i) {
+//            return new CharacterState[i];
+//        }
+//    };
 }

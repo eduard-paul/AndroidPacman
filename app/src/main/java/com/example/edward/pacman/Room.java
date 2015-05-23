@@ -107,7 +107,7 @@ public class Room {
         for (User spectator : spectators) {
             spectator.SendStart();
         }
-        SendBoard();
+//        SendBoard();
         timer.schedule(task, 0, 50);
 
         game.start();

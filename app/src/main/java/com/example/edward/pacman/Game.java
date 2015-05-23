@@ -295,7 +295,8 @@ public class Game extends  Thread{
         public CharacterState getCharState() {
             CharacterState s = new CharacterState();
             s.id = id;
-            s.cell = new Point(cell);
+            s.x = cell.x;
+            s.y = cell.y;
             s.dist = dist;
             s.direction = direction;
             s.speed = speed;

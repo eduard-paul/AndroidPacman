@@ -28,20 +28,21 @@ public class RemoteUser extends User implements Runnable {
     DataInputStream din;
     String myRoomName = "";
     Room myRoom = null;
-    int playerId = -1;
     Server server;
+    Thread secondReader;
 
     RemoteUser(Socket socketParam, Server server) throws IOException {
         this.server = server;
         s = socketParam;
         ds = new Socket(s.getInetAddress(), s.getPort() + 1);
+        Log.d(TAG,ds.toString() + " connected(data)");
         this.sin = s.getInputStream();
         this.sout = s.getOutputStream();
         dObjOut = new ObjectOutputStream(ds.getOutputStream());
         dOut = new DataOutputStream(ds.getOutputStream());
         din = new DataInputStream(ds.getInputStream());
         oin = new ObjectInputStream(s.getInputStream());
-        Thread secondReader = new Thread(new Runnable() {
+        secondReader = new Thread(new Runnable() {
             @Override
             public void run() {
 
@@ -50,10 +51,9 @@ public class RemoteUser extends User implements Runnable {
 
                     try {
                         line = din.readUTF();
-                        System.out
-                                .println("The dumb client just sent me this line : "
-                                        + line);
+                        Log.d(TAG,line);
                     } catch (IOException e) {
+
                         close();
                     }
 
@@ -78,15 +78,15 @@ public class RemoteUser extends User implements Runnable {
 
             try {
                 line = in.readUTF();
-                System.out
-                        .println("The dumb client just sent me this line : "
-                                + line);
+                Log.d(TAG, line);
             } catch (IOException e) {
                 close();
             }
 
             if (line == null) {
                 close();
+            } else if ("RefreshRoomList".equals(line)) {
+                SendRoomList();
             } else if (line.contains("EnterRoom:")) {
                 EnterRoom(line);
             } else if (line.contains("LeaveRoom")) {
@@ -95,6 +95,7 @@ public class RemoteUser extends User implements Runnable {
                 SpectateRoom(line);
             }
         }
+        server.allUsers.remove(this);
     }
 
     @Override

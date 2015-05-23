@@ -3,12 +3,13 @@ package com.example.edward.pacman;
 import android.os.Parcel;
 import android.os.Parcelable;
 
+import java.io.Serializable;
 import java.util.List;
 
 /**
  * Created by edward on 16.05.15.
  */
-public class GameState implements Parcelable{
+public class GameState implements Parcelable, Serializable{
     public List<CharacterState> cs;
     public int[][] board;
 
@@ -46,17 +47,17 @@ public class GameState implements Parcelable{
         }
     }
 
-    public static final Parcelable.Creator<GameState> CREATOR
-            = new Parcelable.Creator<GameState>(){
-
-        @Override
-        public GameState createFromParcel(Parcel parcel) {
-            return new GameState(parcel);
-        }
-
-        @Override
-        public GameState[] newArray(int i) {
-            return new GameState[i];
-        }
-    };
+//    public static final Parcelable.Creator<GameState> CREATOR
+//            = new Parcelable.Creator<GameState>(){
+//
+//        @Override
+//        public GameState createFromParcel(Parcel parcel) {
+//            return new GameState(parcel);
+//        }
+//
+//        @Override
+//        public GameState[] newArray(int i) {
+//            return new GameState[i];
+//        }
+//    };
 }

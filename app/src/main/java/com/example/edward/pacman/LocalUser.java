@@ -51,11 +51,11 @@ public class LocalUser extends User {
         myRoom = null;
         playerId = -1;
     }
-    @Override
+
     public synchronized void CustomRoom(String line) {
 
     }
-    @Override
+
     public synchronized void CreateRoom(String name, int maxPlayers) {
         myRoom = new Room(name, maxPlayers, this);
         myRoomName = name;

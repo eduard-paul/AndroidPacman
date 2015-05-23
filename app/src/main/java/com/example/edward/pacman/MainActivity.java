@@ -20,8 +20,10 @@ import android.util.Log;
 import android.view.Display;
 import android.view.View;
 
+import java.io.IOException;
 import java.util.Collection;
 import java.util.Iterator;
+import java.util.concurrent.TimeUnit;
 
 
 public class MainActivity extends ActionBarActivity {
@@ -30,13 +32,14 @@ public class MainActivity extends ActionBarActivity {
     String TAG = "PacMain";
     static Handler hIn, hOut;
     private View mDecorView;
-    static GameState gs;
+    static public GameState gs;
     static int winOrLose = 0;
     WifiP2pManager mManager;
     WifiP2pManager.Channel mChannel;
-    BroadcastReceiver mReceiver;
+    static BroadcastReceiver mReceiver;
     IntentFilter mIntentFilter;
-    public boolean isServer;
+    public static boolean remote;
+    LocalUser user;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -45,6 +48,8 @@ public class MainActivity extends ActionBarActivity {
         setContentView(R.layout.activity_main);
         handlerIOInit();
         wifiInit();
+//        Intent intent = new Intent(MainActivity.this, PlayingActivity.class);
+//        startActivity(intent);
     }
 
     @Override
@@ -72,7 +77,6 @@ public class MainActivity extends ActionBarActivity {
         }
     }
 
-    User user;
     public void onClick(View view) {
         switch (view.getId()) {
             case R.id.button:
@@ -83,7 +87,7 @@ public class MainActivity extends ActionBarActivity {
                     @Override
                     public void onSuccess() {
                         Log.d(TAG, "discoverPeers onSuccess");
-                        isServer = true;
+
                     }
                     @Override
                     public void onFailure(int reasonCode) {
@@ -92,10 +96,10 @@ public class MainActivity extends ActionBarActivity {
                 });
                 break;
             case R.id.button3:
-                isServer = false;
+
                 Collection<WifiP2pDevice> devices =
                         ((WiFiDirectBroadcastReceiver) mReceiver).getDevices();
-                if (devices.size()==0) return;
+                if (devices==null || devices.size()==0) return;
                 Iterator<WifiP2pDevice> iterator = devices.iterator();
                 WifiP2pDevice device = iterator.next();
                 WifiP2pConfig config = new WifiP2pConfig();
@@ -190,23 +194,46 @@ public class MainActivity extends ActionBarActivity {
             drawView.setOnTouchListener(new OnSwipeTouchListener(this){
                 @Override
                 public void onSwipeRight() {
-                    hOut.sendMessage(hOut.obtainMessage(User.TURN, User.RIGHT, 0));
+                    if (remote) try {
+                        ((WiFiDirectBroadcastReceiver)mReceiver).socketReader.dout.writeUTF("Right");
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    } else {
+                        hOut.sendMessage(hOut.obtainMessage(User.TURN, User.RIGHT, 0));
+                    }
                 }
 
                 @Override
                 public void onSwipeLeft() {
-                    hOut.sendMessage(hOut.obtainMessage(User.TURN, User.LEFT, 0));
+                    if (remote) try {
+                        ((WiFiDirectBroadcastReceiver)mReceiver).socketReader.dout.writeUTF("Left");
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    } else {
+                        hOut.sendMessage(hOut.obtainMessage(User.TURN, User.LEFT, 0));
+                    }
                 }
 
                 @Override
                 public void onSwipeTop() {
-                    hOut.sendMessage(hOut.obtainMessage(User.TURN, User.UP, 0));
-
+                    if (remote) try {
+                        ((WiFiDirectBroadcastReceiver)mReceiver).socketReader.dout.writeUTF("Up");
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    } else {
+                        hOut.sendMessage(hOut.obtainMessage(User.TURN, User.UP, 0));
+                    }
                 }
 
                 @Override
                 public void onSwipeBottom() {
-                    hOut.sendMessage(hOut.obtainMessage(User.TURN, User.DOWN, 0));
+                    if (remote) try {
+                        ((WiFiDirectBroadcastReceiver)mReceiver).socketReader.dout.writeUTF("Down");
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    } else {
+                        hOut.sendMessage(hOut.obtainMessage(User.TURN, User.DOWN, 0));
+                    }
                 }
             });
         }
@@ -246,6 +273,15 @@ public class MainActivity extends ActionBarActivity {
             protected void onDraw(Canvas canvas) {
                 canvas.drawColor(Color.BLACK);
                 p.setColor(Color.RED);
+                if (gs==null) {
+                    try {
+                        TimeUnit.SECONDS.sleep(1);
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
+                    invalidate();
+                    return;
+                }
                 for (int row = 0; row < gs.board.length; row++) {
                     for (int col = 0; col < gs.board[0].length; col++) {
                         switch (gs.board[row][col]) {
@@ -274,8 +310,8 @@ public class MainActivity extends ActionBarActivity {
                 for (Iterator iterator = gs.cs.iterator(); iterator.hasNext(); ) {
                     CharacterState ch =  (CharacterState)iterator.next();
                     p.setColor(Color.DKGRAY);
-                    int x = ch.cell.x * cellSize + cellSize/2;
-                    int y = ch.cell.y * cellSize + cellSize/2;
+                    int x = ch.x * cellSize + cellSize/2;
+                    int y = ch.y * cellSize + cellSize/2;
                     if (Math.abs(ch.direction) > 1)
                         x += (ch.dist * cellSize / 2);
                     else

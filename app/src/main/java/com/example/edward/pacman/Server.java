@@ -11,7 +11,7 @@ import java.util.concurrent.LinkedBlockingQueue;
 /**
  * Created by Edward on 22.05.2015.
  */
-public class Server {
+public class Server extends Thread {
     String TAG = "PacServer";
 
     private ServerSocket ss;
@@ -22,6 +22,10 @@ public class Server {
 
     public Server(int port) {
         this.port = port;
+    }
+
+    public void addLocalUser(LocalUser localUser){
+        allUsers.offer((User)localUser);
     }
 
     private Socket getNewConn() {
@@ -47,12 +51,17 @@ public class Server {
             }
         }
     }
-
-    void run() throws IOException {
-        ss = new ServerSocket(port);
+    @Override
+    public void run()  {
+        try {
+            ss = new ServerSocket(port);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
         serverThread = Thread.currentThread();
         while (true) {
             Socket s = getNewConn();
+            Log.d(TAG,s.toString() + " connected");
             if (serverThread.isInterrupted()) {
                 break;
             } else if (s != null) {
@@ -62,7 +71,7 @@ public class Server {
                     thread.setDaemon(true);
                     thread.start();
                     allUsers.offer(processor);
-                    Log.d(TAG,s.toString() + " connected");
+                    Log.d(TAG,s.toString() + " offered");
                 } catch (IOException ignored) {
                 }
             }
