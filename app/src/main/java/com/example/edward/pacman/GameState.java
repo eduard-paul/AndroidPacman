@@ -6,9 +6,6 @@ import android.os.Parcelable;
 import java.io.Serializable;
 import java.util.List;
 
-/**
- * Created by edward on 16.05.15.
- */
 public class GameState implements Parcelable, Serializable{
     public List<CharacterState> cs;
     public int[][] board;
@@ -17,9 +14,7 @@ public class GameState implements Parcelable, Serializable{
         this.cs = cs;
         this.board = new int[board.length][board[0].length];
         for (int i = 0; i < board.length; i++) {
-            for (int j = 0; j < board[0].length; j++) {
-                this.board[i][j] = board[i][j];
-            }
+            System.arraycopy(board[i], 0, this.board[i], 0, board[0].length);
         }
     }
 
@@ -41,23 +36,22 @@ public class GameState implements Parcelable, Serializable{
     public void writeToParcel(Parcel parcel, int i) {
         parcel.writeTypedList(cs);
         parcel.writeInt(board.length);
-        for (int j = 0; j < board.length; j++) {
-            int[] ints = board[j];
+        for (int[] ints : board) {
             parcel.writeIntArray(ints);
         }
     }
 
-//    public static final Parcelable.Creator<GameState> CREATOR
-//            = new Parcelable.Creator<GameState>(){
-//
-//        @Override
-//        public GameState createFromParcel(Parcel parcel) {
-//            return new GameState(parcel);
-//        }
-//
-//        @Override
-//        public GameState[] newArray(int i) {
-//            return new GameState[i];
-//        }
-//    };
+    public static final Parcelable.Creator<GameState> CREATOR
+            = new Parcelable.Creator<GameState>(){
+
+        @Override
+        public GameState createFromParcel(Parcel parcel) {
+            return new GameState(parcel);
+        }
+
+        @Override
+        public GameState[] newArray(int i) {
+            return new GameState[i];
+        }
+    };
 }

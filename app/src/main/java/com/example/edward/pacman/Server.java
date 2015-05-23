@@ -8,24 +8,21 @@ import java.net.Socket;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 
-/**
- * Created by Edward on 22.05.2015.
- */
 public class Server extends Thread {
     String TAG = "PacServer";
 
     private ServerSocket ss;
-    private Thread serverThread;
     private int port;
-    BlockingQueue<User> allUsers = new LinkedBlockingQueue<User>();
-    BlockingQueue<Room> rooms = new LinkedBlockingQueue<Room>();
+    BlockingQueue<User> allUsers = new LinkedBlockingQueue<>();
+    BlockingQueue<Room> rooms = new LinkedBlockingQueue<>();
+    Thread serverThread;
 
     public Server(int port) {
         this.port = port;
     }
 
     public void addLocalUser(LocalUser localUser){
-        allUsers.offer((User)localUser);
+        allUsers.offer(localUser);
         localUser.setServer(this);
     }
 
@@ -42,12 +39,10 @@ public class Server extends Thread {
     private synchronized void shutdownServer() {
         for (User s : allUsers) {
             s.close();
-            //server.textArea.append("1\n");
         }
         if (!ss.isClosed()) {
             try {
                 ss.close();
-                //server.textArea.append("2\n");
             } catch (IOException ignored) {
             }
         }
@@ -65,7 +60,8 @@ public class Server extends Thread {
             Log.d(TAG,s.toString() + " connected");
             if (serverThread.isInterrupted()) {
                 break;
-            } else if (s != null) {
+            } else //noinspection ConstantConditions
+                if (s != null) {
                 try {
                     final User processor = new RemoteUser(s, this);
                     final Thread thread = new Thread((RemoteUser)processor);

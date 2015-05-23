@@ -12,9 +12,6 @@ import java.io.ObjectOutputStream;
 import java.io.OutputStream;
 import java.net.Socket;
 
-/**
- * Created by Edward on 22.05.2015.
- */
 public class RemoteUser extends User implements Runnable {
     /** Request socket */
     Socket s;
@@ -52,7 +49,6 @@ public class RemoteUser extends User implements Runnable {
                         line = din.readUTF();
                         Log.d(TAG,line);
                     } catch (IOException e) {
-
                         close();
                     }
 
@@ -93,8 +89,6 @@ public class RemoteUser extends User implements Runnable {
                 EnterRoom(line);
             } else if (line.contains("LeaveRoom")) {
                 LeaveRoom();
-            } else if (line.contains("SpectateRoom:")) {
-                SpectateRoom(line);
             }
         }
         server.allUsers.remove(this);
@@ -103,15 +97,6 @@ public class RemoteUser extends User implements Runnable {
     @Override
     public Handler getHandler() {
         return null;
-    }
-
-    public void SendBoard(int[][] board) {
-        try {
-            dObjOut.writeObject(board);
-            dObjOut.flush();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
     }
 
     public synchronized void CreateRoom(String line) {
@@ -132,13 +117,13 @@ public class RemoteUser extends User implements Runnable {
             try {
                 out.writeUTF("success");
                 out.flush();
-            } catch (IOException e) {
+            } catch (IOException ignored) {
             }
         } else {
             try {
                 out.writeUTF("fail");
                 out.flush();
-            } catch (IOException e) {
+            } catch (IOException ignored) {
             }
         }
     }
@@ -176,40 +161,13 @@ public class RemoteUser extends User implements Runnable {
             try {
                 out.writeUTF("success");
                 out.flush();
-            } catch (IOException e) {
+            } catch (IOException ignored) {
             }
         } else {
             try {
                 out.writeUTF("fail");
                 out.flush();
-            } catch (IOException e) {
-            }
-        }
-    }
-
-    public synchronized void SpectateRoom(String line) {
-        DataOutputStream out = new DataOutputStream(sout);
-        String name = line.substring(13);
-        boolean failed = true;
-        for (Room room : server.rooms) {
-            if (room.name.equals(name)) {
-                room.AddSpectator(this);
-                myRoomName = "spectate";
-                myRoom = room;
-                failed = false;
-            }
-        }
-        if (!failed) {
-            try {
-                out.writeUTF("success");
-                out.flush();
-            } catch (IOException e) {
-            }
-        } else {
-            try {
-                out.writeUTF("fail");
-                out.flush();
-            } catch (IOException e) {
+            } catch (IOException ignored) {
             }
         }
     }
@@ -217,7 +175,7 @@ public class RemoteUser extends User implements Runnable {
     public void SendRoomList() {
         DataOutputStream out = new DataOutputStream(sout);
         try {
-            String list = new String();
+            String list = "";
             for (Room room : server.rooms) {
                 list += ":" + room.name + " " + "[" + room.currPlayers
                         + "/" + room.maxPlayers + "]";

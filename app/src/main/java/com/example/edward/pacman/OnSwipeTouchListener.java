@@ -1,8 +1,6 @@
 package com.example.edward.pacman;
 
-/**
- * Created by Edward on 19.05.2015.
- */
+
 import android.content.Context;
 import android.view.GestureDetector;
 import android.view.GestureDetector.SimpleOnGestureListener;

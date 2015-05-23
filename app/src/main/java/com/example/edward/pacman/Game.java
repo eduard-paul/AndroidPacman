@@ -8,9 +8,6 @@ import java.util.Random;
 import java.util.Timer;
 import java.util.TimerTask;
 
-/**
- * Created by edward on 16.05.15.
- */
 public class Game extends  Thread{
     private final int[][] defaultBoard = {
             { -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
@@ -75,8 +72,10 @@ public class Game extends  Thread{
                     0, 0, 0, 0, 0, 0, 0, -1 },
             { -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1,
                     -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1 } };
+    @SuppressWarnings("FieldCanBeLocal")
     private final Point[] defaultPlayersStartPoints = { new Point(1, 1),
             new Point(1, 26), new Point(29, 26), new Point(29, 1) };
+    @SuppressWarnings("FieldCanBeLocal")
     private final Point[] defaultGhostsStartPoints = { new Point(13, 11),
             new Point(15, 11), new Point(13, 16), new Point(15, 16) };
     private final Point[] playersStartPoints;
@@ -88,7 +87,7 @@ public class Game extends  Thread{
     int catchedPlayers = 0;
     int totalFood = 0, catchedFood = 0;
     public Board board;
-    List<Character> characters = new LinkedList<Character>();
+    List<Character> characters = new LinkedList<>();
     Timer timer = new java.util.Timer();
     protected boolean restarting = false;
 
@@ -101,7 +100,7 @@ public class Game extends  Thread{
             if (restarting) {
                 try {
                     Thread.sleep(3000);
-                } catch (InterruptedException e) {
+                } catch (InterruptedException ignored) {
                 }
                 Restart();
             }
@@ -157,21 +156,6 @@ public class Game extends  Thread{
         totalFood *= 0.1;
     }
 
-    public Game(CustomBoard cb) {
-        this.playersNum = cb.playersStartPoints.size();
-        this.playersStartPoints = cb.playersStartPoints.toArray(new Point[0]);
-        this.ghostsStartPoints = cb.ghostsStartPoints.toArray(new Point[0]);
-        board = new Board(cb);
-        for (int i = 0; i < board.board.length; i++) {
-            for (int j = 0; j < board.board[0].length; j++) {
-                if (board.board[i][j] != -1) {
-                    totalFood++;
-                    board.board[i][j] = 5;
-                }
-            }
-        }
-    }
-
     @Override
     public void run() {
         for (int i = 0; i < playersNum; i++) {
@@ -222,17 +206,6 @@ public class Game extends  Thread{
     public class Board {
         public int board[][];
         protected int cleanBoard[][];
-
-        public Board(CustomBoard cb) {
-            board = new int[cb.board.length][cb.board[0].length];
-            cleanBoard = new int[cb.board.length][cb.board[0].length];
-            for (int i = 0; i < board.length; i++) {
-                for (int j = 0; j < board[0].length; j++) {
-                    board[i][j] = cb.board[i][j];
-                    cleanBoard[i][j] = cb.board[i][j];
-                }
-            }
-        }
         /**
          * Creates the default board
          */
@@ -274,12 +247,11 @@ public class Game extends  Thread{
     }
 
     protected GameState getGameState() {
-        List<CharacterState> cs = new LinkedList<CharacterState>();
+        List<CharacterState> cs = new LinkedList<>();
         for (Character character : characters) {
             cs.add(character.getCharState());
         }
-        GameState gs = new GameState(cs, board.board);
-        return gs;
+        return new GameState(cs, board.board);
     }
 
     abstract class Character {
@@ -483,7 +455,7 @@ public class Game extends  Thread{
         @Override
         public void move() {
 
-            Point aimCell = null;
+            Point aimCell;
 
             Point right = RightCell();
             Point left = LeftCell();
@@ -511,7 +483,6 @@ public class Game extends  Thread{
             if (board.getCellState(left) != -1
                     && distance(left,aimCell) < minDistToAim) {
                 TurnLeft();
-                minDistToAim = distance(left,aimCell);
             }
 
             if (board.getCellState(NextCell()) != -1
@@ -527,6 +498,7 @@ public class Game extends  Thread{
                                 player = character;
                             }
                         }
+                        //noinspection ConstantConditions
                         player.speed = 0;
                         player.dist = 0;
                         player.cell = new Point(0, playersNum
@@ -545,10 +517,7 @@ public class Game extends  Thread{
 
                     cell = NextCell();
 
-                    if (board.getCellState(cell) == 5)
-                        foodFlag = true;
-                    else
-                        foodFlag = false;
+                    foodFlag = board.getCellState(cell) == 5;
 
                     dist -= 2 * Math.signum(dist);
                 }

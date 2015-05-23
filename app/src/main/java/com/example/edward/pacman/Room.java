@@ -1,23 +1,18 @@
 package com.example.edward.pacman;
 
-import java.util.LinkedList;
-import java.util.List;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 
-/**
- * Created by edward on 16.05.15.
- */
 public class Room {
     protected String name;
     protected int maxPlayers;
     protected int currPlayers;
     protected Game game;
     protected boolean isStarted = false;
-    protected BlockingQueue<User> players = new LinkedBlockingQueue<User>();
-    protected BlockingQueue<User> spectators = new LinkedBlockingQueue<User>();
+    protected BlockingQueue<User> players = new LinkedBlockingQueue<>();
+    protected BlockingQueue<User> spectators = new LinkedBlockingQueue<>();
     private Timer timer = new java.util.Timer();
     private Server server;
 
@@ -135,7 +130,7 @@ public class Room {
         players.remove(player);
         if (!IsStarted())
             currPlayers = players.size();
-        if (players.size() == 0) {
+        if (players.size() == 0 && server != null) {
             server.rooms.remove(this);
         }
     }

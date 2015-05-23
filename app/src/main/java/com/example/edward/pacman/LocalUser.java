@@ -4,12 +4,6 @@ import android.os.Handler;
 import android.os.Message;
 import android.util.Log;
 
-import java.util.ArrayList;
-import java.util.concurrent.BlockingQueue;
-
-/**
- * Created by Edward on 19.05.2015.
- */
 public class LocalUser extends User {
     Handler in, out;
 
@@ -49,9 +43,7 @@ public class LocalUser extends User {
     public Handler getHandler() {
         return in;
     }
-    @Override
-    public void SendBoard(int[][] board) {
-    }
+
     public void setServer(Server server){
         this.server = server;
     }
@@ -65,10 +57,6 @@ public class LocalUser extends User {
 
         myRoom = null;
         playerId = -1;
-    }
-
-    public synchronized void CustomRoom(String line) {
-
     }
 
     public synchronized void CreateRoom(String name, int maxPlayers) {
@@ -117,13 +105,9 @@ public class LocalUser extends User {
         }
     }
     @Override
-    public synchronized void SpectateRoom(String line) {
-
-    }
-    @Override
     public void SendRoomList() {
         Message msg;
-        String list = new String();
+        String list = "";
         for (Room room : server.rooms) {
             list += ":" + room.name + " " + "[" + room.currPlayers
                     + "/" + room.maxPlayers + "]";

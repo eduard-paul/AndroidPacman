@@ -1,5 +1,7 @@
 package com.example.edward.pacman;
 
+import android.annotation.SuppressLint;
+import android.annotation.TargetApi;
 import android.app.AlertDialog;
 import android.content.BroadcastReceiver;
 import android.content.Context;
@@ -12,6 +14,7 @@ import android.graphics.Paint;
 import android.graphics.RectF;
 import android.net.wifi.p2p.WifiP2pManager;
 import android.os.AsyncTask;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
@@ -25,17 +28,16 @@ import android.view.View;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.EditText;
-import android.widget.LinearLayout;
 import android.widget.ListView;
 import android.widget.TextView;
 
 import java.io.IOException;
-import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 
 
+@SuppressWarnings("deprecation")
 public class MainActivity extends ActionBarActivity {
 
 
@@ -63,6 +65,7 @@ public class MainActivity extends ActionBarActivity {
         registerReceiver(mReceiver, mIntentFilter);
     }
 
+    @TargetApi(Build.VERSION_CODES.KITKAT)
     @Override
     public void onWindowFocusChanged(boolean hasFocus) {
         super.onWindowFocusChanged(hasFocus);
@@ -146,9 +149,8 @@ public class MainActivity extends ActionBarActivity {
         mIntentFilter.addAction(WifiP2pManager.WIFI_P2P_CONNECTION_CHANGED_ACTION);
         mIntentFilter.addAction(WifiP2pManager.WIFI_P2P_THIS_DEVICE_CHANGED_ACTION);
     }
-//////////////////////////////////
 
-
+    @SuppressWarnings("deprecation")
     public static class PlayingActivity extends ActionBarActivity {
         private View mDecorView;
         private DrawView drawView;
@@ -230,6 +232,7 @@ public class MainActivity extends ActionBarActivity {
             }
         }
 
+        @TargetApi(Build.VERSION_CODES.KITKAT)
         @Override
         public void onWindowFocusChanged(boolean hasFocus) {
             super.onWindowFocusChanged(hasFocus);
@@ -245,7 +248,6 @@ public class MainActivity extends ActionBarActivity {
 
         class DrawView extends View {
             Paint p;
-            int x = -1 ,y = -1;
             int timer = 0;
 
             public DrawView(Context context) {
@@ -293,11 +295,10 @@ public class MainActivity extends ActionBarActivity {
                     }
                 }
 
-                for (Iterator iterator = gs.cs.iterator(); iterator.hasNext(); ) {
-                    CharacterState ch =  (CharacterState)iterator.next();
+                for (CharacterState ch : gs.cs) {
                     p.setColor(Color.DKGRAY);
-                    int x = ch.x * cellSize + cellSize/2;
-                    int y = ch.y * cellSize + cellSize/2;
+                    int x = ch.x * cellSize + cellSize / 2;
+                    int y = ch.y * cellSize + cellSize / 2;
                     if (Math.abs(ch.direction) > 1)
                         x += (ch.dist * cellSize / 2);
                     else
@@ -330,14 +331,14 @@ public class MainActivity extends ActionBarActivity {
                         default:
                             break;
                     }
-                    final RectF oval = new RectF();
+                    @SuppressLint("DrawAllocation") final RectF oval = new RectF();
                     oval.set(y - cellSize / 2, x - cellSize / 2, y + cellSize / 2, x + cellSize / 2);
-                    if (ch.id>0) {
-                        timer = (timer+1)%10;
-                        float tmp = (float)timer/5;
-                        if (timer>5) tmp = (float)(10-timer)/5;
-                        float direction=0;
-                        switch (ch.direction){
+                    if (ch.id > 0) {
+                        timer = (timer + 1) % 10;
+                        float tmp = (float) timer / 5;
+                        if (timer > 5) tmp = (float) (10 - timer) / 5;
+                        float direction = 0;
+                        switch (ch.direction) {
                             case 1:
                                 direction = 0;
                                 break;
@@ -351,10 +352,11 @@ public class MainActivity extends ActionBarActivity {
                                 direction = 270;
                                 break;
                         }
-                        canvas.drawArc(oval,55*tmp+direction,360-110*tmp,true,p);
+                        canvas.drawArc(oval, 55 * tmp + direction, 360 - 110 * tmp, true, p);
                     } else {
                         canvas.drawArc(oval, 180, 180, true, p);
-                        canvas.drawRect(y-cellSize/2,x,y+cellSize/2,x+cellSize/2,p);
+                        //noinspection SuspiciousNameCombination
+                        canvas.drawRect(y - cellSize / 2, x, y + cellSize / 2, x + cellSize / 2, p);
                     }
                 }
 
@@ -383,13 +385,7 @@ public class MainActivity extends ActionBarActivity {
                 }
                 invalidate();
             }
-
-            public void drawPoint(int _x, int _y){
-                x=_x; y=_y;
-                invalidate();
-            }
         }
-
     }
 
     static class Receiver extends AsyncTask<Void,Void,String>{
@@ -397,8 +393,7 @@ public class MainActivity extends ActionBarActivity {
         @Override
         protected String doInBackground(Void... voids) {
             socketReader = ((WiFiDirectBroadcastReceiver)mReceiver).socketReader;
-            String line = socketReader.recv();
-            return line;
+            return socketReader.recv();
         }
     }
 
@@ -408,7 +403,6 @@ public class MainActivity extends ActionBarActivity {
         protected Void doInBackground(String... strings) {
             socketReader = ((WiFiDirectBroadcastReceiver)mReceiver).socketReader;
             try {
-                int cnt = 0;
                 for (String string : strings) {
                     socketReader.out.writeUTF(string);
                 }
@@ -430,14 +424,13 @@ public class MainActivity extends ActionBarActivity {
         String line = null;
         try {
             line = receiver.get();
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        } catch (ExecutionException e) {
+        } catch (InterruptedException | ExecutionException e) {
             e.printStackTrace();
         }
         return line;
     }
 
+    @SuppressWarnings("deprecation")
     public static class RoomList extends ActionBarActivity {
         String TAG = "PacRoom";
         String[] roomList = null;
@@ -483,7 +476,7 @@ public class MainActivity extends ActionBarActivity {
         }
 
         public void RefreshRoomList() {
-            String line = "empty";
+            String line;
             if (!isServer && !isLocalGame) {
                 send("RefreshRoomList");
                 line = recv();
@@ -502,13 +495,13 @@ public class MainActivity extends ActionBarActivity {
                         }
                     }
                     ListView listView = (ListView) findViewById(R.id.listView);
-                    ArrayAdapter<String> adapter = new ArrayAdapter<String>(this,
+                    ArrayAdapter<String> adapter = new ArrayAdapter<>(this,
                             android.R.layout.simple_list_item_1, roomList);
                     listView.setAdapter(adapter);
                 } else {
                     roomList = null;
                     ListView listView = (ListView) findViewById(R.id.listView);
-                    ArrayAdapter<String> adapter = new ArrayAdapter<String>(this,
+                    ArrayAdapter<String> adapter = new ArrayAdapter<>(this,
                             android.R.layout.simple_list_item_1, new LinkedList<String>());
                     listView.setAdapter(adapter);
                 }
@@ -540,7 +533,7 @@ public class MainActivity extends ActionBarActivity {
 
                 builder.setTitle(R.string.dialog_title);
 
-                final View view = (LinearLayout) getLayoutInflater()
+                @SuppressLint("InflateParams") final View view = getLayoutInflater()
                         .inflate(R.layout.dialog, null);
                 builder.setView(view);
 
@@ -550,9 +543,9 @@ public class MainActivity extends ActionBarActivity {
                         EditText numPlayersText = (EditText) view.findViewById(R.id.editText2);
                         String roomName = roomNameText.getText().toString();
                         String numPlayers = numPlayersText.getText().toString();
-                        if (roomName != null){
+                        if (!roomName.equals("")){
                             if (!isServer && !isLocalGame) {
-                                String answer = null;
+                                String answer;
                                 send("CreateRoom:" + numPlayers+":"+roomName);
                                 answer = recv();
                                 RefreshRoomList();
@@ -585,7 +578,7 @@ public class MainActivity extends ActionBarActivity {
 
         @Override
         public void onBackPressed() {
-            if (myRoom != "") {
+            if (!myRoom.equals("")) {
                 myRoom = "";
                 if (!isServer && !isLocalGame) {
                     send("LeaveRoom");

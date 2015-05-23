@@ -5,9 +5,6 @@ import android.os.Parcelable;
 
 import java.io.Serializable;
 
-/**
- * Created by edward on 16.05.15.
- */
 public class CharacterState implements Parcelable, Serializable{
     public int id, winnerId;
     public int x, y;
@@ -40,17 +37,17 @@ public class CharacterState implements Parcelable, Serializable{
         parcel.writeInt(speed);
     }
 
-//    public static final Parcelable.Creator<CharacterState> CREATOR
-//            = new Parcelable.Creator<CharacterState>(){
-//
-//        @Override
-//        public CharacterState createFromParcel(Parcel parcel) {
-//            return (new CharacterState(parcel));
-//        }
-//
-//        @Override
-//        public CharacterState[] newArray(int i) {
-//            return new CharacterState[i];
-//        }
-//    };
+    public static final Parcelable.Creator<CharacterState> CREATOR
+            = new Parcelable.Creator<CharacterState>(){
+
+        @Override
+        public CharacterState createFromParcel(Parcel parcel) {
+            return (new CharacterState(parcel));
+        }
+
+        @Override
+        public CharacterState[] newArray(int i) {
+            return new CharacterState[i];
+        }
+    };
 }

@@ -1,12 +1,7 @@
 package com.example.edward.pacman;
 
 import android.os.Handler;
-import android.os.Message;
-import android.util.Log;
 
-/**
- * Created by edward on 16.05.15.
- */
 abstract public class User {
     public static final int SUCCESS = 0;
     public static final int FAIL = -1;
@@ -30,17 +25,9 @@ abstract public class User {
 
     public abstract Handler getHandler();
 
-    public abstract void SendBoard(int[][] board);
-
     public abstract void LeaveRoom();
 
-//    public abstract void CustomRoom(String line);
-
-//    public abstract void CreateRoom(String name, int maxPlayers);
-
     public abstract void EnterRoom(String line);
-
-    public abstract void SpectateRoom(String line);
 
     public abstract void SendRoomList();
 
