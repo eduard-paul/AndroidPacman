@@ -4,6 +4,9 @@ import android.os.Handler;
 import android.os.Message;
 import android.util.Log;
 
+import java.util.ArrayList;
+import java.util.concurrent.BlockingQueue;
+
 /**
  * Created by Edward on 19.05.2015.
  */
@@ -19,14 +22,23 @@ public class LocalUser extends User {
                 super.handleMessage(msg);
                 Log.d(TAG, Integer.toString(msg.what));
                 switch (msg.what) {
-                    case 1:
-                        CreateRoom("Roomname",msg.arg1);
+                    case NEW_ROOM:
+                        if (myRoom==null) {
+                            String name = (String) msg.obj;
+                            CreateRoom(name, msg.arg1);
+                        }
                         break;
-                    case 2:
+                    case LEAVE_ROOM:
                         LeaveRoom();
                         break;
                     case TURN:
-                        myRoom.Command(msg.arg1,playerId);
+                        if (myRoom!=null) myRoom.Command(msg.arg1,playerId);
+                        break;
+                    case REFRESH:
+                        SendRoomList();
+                        break;
+                    case ENTER_ROOM:
+                        EnterRoom((String) msg.obj);
                         break;
                 }
             }
@@ -39,7 +51,9 @@ public class LocalUser extends User {
     }
     @Override
     public void SendBoard(int[][] board) {
-
+    }
+    public void setServer(Server server){
+        this.server = server;
     }
     @Override
     public synchronized void LeaveRoom() {
@@ -48,6 +62,7 @@ public class LocalUser extends User {
         else
             myRoom.RemovePlayer(this);
         myRoomName = "";
+
         myRoom = null;
         playerId = -1;
     }
@@ -57,12 +72,49 @@ public class LocalUser extends User {
     }
 
     public synchronized void CreateRoom(String name, int maxPlayers) {
-        myRoom = new Room(name, maxPlayers, this);
-        myRoomName = name;
+        if (server == null) {
+            myRoom = new Room(name, maxPlayers, this);
+            myRoomName = name;
+            out.sendMessage(out.obtainMessage(NEW_ROOM, SUCCESS, 0));
+        } else {
+            boolean failed = false;
+            for (Room room : server.rooms) { // Check if the same already exists
+                if (room.name.equals(name))
+                    failed = true;
+            }
+            if (!failed) {
+                myRoom = new Room(server, name, maxPlayers, this);
+                server.rooms.offer(myRoom);
+                myRoomName = name;
+                out.sendMessage(out.obtainMessage(NEW_ROOM,SUCCESS,0));
+            } else {
+                out.sendMessage(out.obtainMessage(NEW_ROOM,FAIL,0));
+            }
+        }
     }
     @Override
-    public synchronized void EnterRoom(String line) {
-
+    public synchronized void EnterRoom(String name) {
+        boolean failed = true;
+        for (Room room : server.rooms) {
+            if (room.name.equals(name)) {
+                if (room.currPlayers < room.maxPlayers && !room.IsStarted()) {
+                    room.AddPlayer(this);
+                    myRoomName = name;
+                    myRoom = room;
+                    failed = false;
+                } else {
+                    room.AddSpectator(this);
+                    myRoomName = name;
+                    myRoom = room;
+                    failed = false;
+                }
+            }
+        }
+        if (!failed) {
+            out.sendMessage(out.obtainMessage(ENTER_ROOM,SUCCESS,0));
+        } else {
+            out.sendMessage(out.obtainMessage(ENTER_ROOM,FAIL,0));
+        }
     }
     @Override
     public synchronized void SpectateRoom(String line) {
@@ -70,7 +122,19 @@ public class LocalUser extends User {
     }
     @Override
     public void SendRoomList() {
-        out.sendEmptyMessage(3);
+        Message msg;
+        String list = new String();
+        for (Room room : server.rooms) {
+            list += ":" + room.name + " " + "[" + room.currPlayers
+                    + "/" + room.maxPlayers + "]";
+        }
+        if (list.isEmpty()) {
+            msg = out.obtainMessage(REFRESH, "empty");
+        }
+        else {
+            msg = out.obtainMessage(REFRESH,list.substring(1));
+        }
+        out.sendMessage(msg);
     }
     @Override
     public synchronized void close() {

@@ -4,6 +4,12 @@
     <string name="hello_world">Hello world!</string>
     <string name="action_settings">Settings</string>
     <string name="single">Single player</string>
-    <string name="multy_create">Create multyplayer</string>
-    <string name="multy_connect">Connect</string>
+    <string name="multi_create">Multiplayer</string>
+    <string name="title_activity_room_list">RoomList</string>
+    <string name="new_room">New</string>
+    <string name="dialog_message">New room</string>
+    <string name="dialog_title">Title</string>
+    <string name="ok">Ok</string>
+    <string name="cancel">Cancel</string>
+    <string name="refresh">Refresh</string>
 </resources>

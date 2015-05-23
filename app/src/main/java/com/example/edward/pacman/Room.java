@@ -4,6 +4,8 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Timer;
 import java.util.TimerTask;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.LinkedBlockingQueue;
 
 /**
  * Created by edward on 16.05.15.
@@ -14,9 +16,10 @@ public class Room {
     protected int currPlayers;
     protected Game game;
     protected boolean isStarted = false;
-    protected List<User> players = new LinkedList<User>();
-    protected List<User> spectators = new LinkedList<User>();
+    protected BlockingQueue<User> players = new LinkedBlockingQueue<User>();
+    protected BlockingQueue<User> spectators = new LinkedBlockingQueue<User>();
     private Timer timer = new java.util.Timer();
+    private Server server;
 
     private TimerTask task = new TimerTask() {
         public void run() {
@@ -53,8 +56,9 @@ public class Room {
         }
     }
 
-    public Room(String name, int maxPlayers, User firstPlayer) {
+    public Room(Server server, String name, int maxPlayers, User firstPlayer) {
 
+        this.server = server;
         this.name = name;
         this.maxPlayers = maxPlayers;
         this.currPlayers = 1;
@@ -66,14 +70,14 @@ public class Room {
             StartGame();
     }
 
-    public Room(String name, CustomBoard cb, User firstPlayer) {
+    public Room(String name, int maxPlayers, User firstPlayer) {
 
         this.name = name;
-        this.maxPlayers = cb.playersStartPoints.size();
+        this.maxPlayers = maxPlayers;
         this.currPlayers = 1;
         players.add(firstPlayer);
 
-        game = new Game(cb);
+        game = new Game(maxPlayers);
 
         if (currPlayers == maxPlayers)
             StartGame();
@@ -92,7 +96,6 @@ public class Room {
     public void AddSpectator(User spectator) {
         if (IsStarted()) {
             spectator.SendStart();
-            spectator.SendBoard(game.board.board);
         }
         spectators.add(spectator);
     }
@@ -128,19 +131,13 @@ public class Room {
         }
     }
 
-    private void SendBoard() {
-        for (User player : players) {
-            player.SendBoard(game.board.board);
-        }
-        for (User spectator : spectators) {
-            spectator.SendBoard(game.board.board);
-        }
-    }
-
     public void RemovePlayer(User player) {
         players.remove(player);
         if (!IsStarted())
             currPlayers = players.size();
+        if (players.size() == 0) {
+            server.rooms.remove(this);
+        }
     }
 
     public void RemoveSpectator(User spectator) {

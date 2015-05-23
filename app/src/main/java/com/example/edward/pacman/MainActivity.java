@@ -1,16 +1,17 @@
 package com.example.edward.pacman;
 
+import android.app.AlertDialog;
 import android.content.BroadcastReceiver;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.RectF;
-import android.net.wifi.p2p.WifiP2pConfig;
-import android.net.wifi.p2p.WifiP2pDevice;
 import android.net.wifi.p2p.WifiP2pManager;
+import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
@@ -18,11 +19,20 @@ import android.support.v7.app.ActionBarActivity;
 import android.util.DisplayMetrics;
 import android.util.Log;
 import android.view.Display;
+import android.view.Menu;
+import android.view.MenuItem;
 import android.view.View;
+import android.widget.AdapterView;
+import android.widget.ArrayAdapter;
+import android.widget.EditText;
+import android.widget.LinearLayout;
+import android.widget.ListView;
+import android.widget.TextView;
 
 import java.io.IOException;
-import java.util.Collection;
 import java.util.Iterator;
+import java.util.LinkedList;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 
 
@@ -38,8 +48,10 @@ public class MainActivity extends ActionBarActivity {
     WifiP2pManager.Channel mChannel;
     static BroadcastReceiver mReceiver;
     IntentFilter mIntentFilter;
-    public static boolean remote;
-    LocalUser user;
+    public static boolean isServer;
+    public static boolean isLocalGame;
+    static LocalUser user;
+    static String roomListString = "empty";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -48,20 +60,7 @@ public class MainActivity extends ActionBarActivity {
         setContentView(R.layout.activity_main);
         handlerIOInit();
         wifiInit();
-//        Intent intent = new Intent(MainActivity.this, PlayingActivity.class);
-//        startActivity(intent);
-    }
-
-    @Override
-    protected void onResume() {
-        super.onResume();
         registerReceiver(mReceiver, mIntentFilter);
-    }
-
-    @Override
-    protected void onPause() {
-        super.onPause();
-        unregisterReceiver(mReceiver);
     }
 
     @Override
@@ -78,47 +77,28 @@ public class MainActivity extends ActionBarActivity {
     }
 
     public void onClick(View view) {
-        switch (view.getId()) {
-            case R.id.button:
-                hOut.sendMessage(hOut.obtainMessage(User.NEW_ROOM, 1, 0));
-                break;
-            case R.id.button2:
-                mManager.discoverPeers(mChannel, new WifiP2pManager.ActionListener() {
-                    @Override
-                    public void onSuccess() {
-                        Log.d(TAG, "discoverPeers onSuccess");
+        int id = view.getId();
 
-                    }
-                    @Override
-                    public void onFailure(int reasonCode) {
-                        Log.d(TAG, "discoverPeers onFailure");
-                    }
-                });
-                break;
-            case R.id.button3:
+        if(id==R.id.button) {
 
-                Collection<WifiP2pDevice> devices =
-                        ((WiFiDirectBroadcastReceiver) mReceiver).getDevices();
-                if (devices==null || devices.size()==0) return;
-                Iterator<WifiP2pDevice> iterator = devices.iterator();
-                WifiP2pDevice device = iterator.next();
-                WifiP2pConfig config = new WifiP2pConfig();
-                config.deviceAddress = device.deviceAddress;
-                mManager.connect(mChannel, config, new WifiP2pManager.ActionListener() {
+            isLocalGame = true;
+            hOut.sendMessage(hOut.obtainMessage(User.NEW_ROOM, 1, 0));
 
-                    @Override
-                    public void onSuccess() {
-                        //success logic
-                        Log.d(TAG, "connect onSuccess");
-                    }
+        } else if(id==R.id.button2) {
 
-                    @Override
-                    public void onFailure(int reason) {
-                        //failure logic
-                        Log.d(TAG, "connect onFailure");
-                    }
-                });
-                break;
+            Intent intent = new Intent(MainActivity.this,MainActivity.RoomList.class);
+            startActivity(intent);
+
+            mManager.discoverPeers(mChannel, new WifiP2pManager.ActionListener() {
+                @Override
+                public void onSuccess() {
+                    Log.d(TAG, "discoverPeers onSuccess");
+                }
+                @Override
+                public void onFailure(int reasonCode) {
+                    Log.d(TAG, "discoverPeers onFailure");
+                }
+            });
         }
     }
 
@@ -140,11 +120,13 @@ public class MainActivity extends ActionBarActivity {
                                 winOrLose = -1;
                             }
                         }
-
                         break;
                     case User.START_GAME:
                         Intent intent = new Intent(MainActivity.this, PlayingActivity.class);
                         startActivity(intent);
+                        break;
+                    case User.REFRESH:
+                        roomListString = (String) msg.obj;
                         break;
                 }
             }
@@ -194,7 +176,7 @@ public class MainActivity extends ActionBarActivity {
             drawView.setOnTouchListener(new OnSwipeTouchListener(this){
                 @Override
                 public void onSwipeRight() {
-                    if (remote) try {
+                    if (!isServer && !isLocalGame) try {
                         ((WiFiDirectBroadcastReceiver)mReceiver).socketReader.dout.writeUTF("Right");
                     } catch (IOException e) {
                         e.printStackTrace();
@@ -205,7 +187,7 @@ public class MainActivity extends ActionBarActivity {
 
                 @Override
                 public void onSwipeLeft() {
-                    if (remote) try {
+                    if (!isServer && !isLocalGame) try {
                         ((WiFiDirectBroadcastReceiver)mReceiver).socketReader.dout.writeUTF("Left");
                     } catch (IOException e) {
                         e.printStackTrace();
@@ -216,7 +198,7 @@ public class MainActivity extends ActionBarActivity {
 
                 @Override
                 public void onSwipeTop() {
-                    if (remote) try {
+                    if (!isServer && !isLocalGame) try {
                         ((WiFiDirectBroadcastReceiver)mReceiver).socketReader.dout.writeUTF("Up");
                     } catch (IOException e) {
                         e.printStackTrace();
@@ -227,7 +209,7 @@ public class MainActivity extends ActionBarActivity {
 
                 @Override
                 public void onSwipeBottom() {
-                    if (remote) try {
+                    if (!isServer && !isLocalGame) try {
                         ((WiFiDirectBroadcastReceiver)mReceiver).socketReader.dout.writeUTF("Down");
                     } catch (IOException e) {
                         e.printStackTrace();
@@ -241,7 +223,11 @@ public class MainActivity extends ActionBarActivity {
         @Override
         public void onBackPressed() {
             super.onBackPressed();
-            hOut.sendEmptyMessage(User.LEAVE_ROOM);
+            if (!isServer && !isLocalGame) {
+                send("LeaveRoom");
+            } else {
+                hOut.sendEmptyMessage(User.LEAVE_ROOM);
+            }
         }
 
         @Override
@@ -373,12 +359,27 @@ public class MainActivity extends ActionBarActivity {
                 }
 
                 p.setColor(Color.WHITE);
-                if (winOrLose == 1){
-                    canvas.drawText("You win!",displayMetrics.widthPixels/5,
-                            displayMetrics.heightPixels/2,p);
-                } else if (winOrLose == -1){
-                    canvas.drawText("You lose!",displayMetrics.widthPixels/5,
-                            displayMetrics.heightPixels/2,p);
+
+
+                int yPos = (int) ((canvas.getHeight() / 2) - ((p.descent() + p.ascent()) / 2));
+                if (winOrLose == 1) {
+                    int xPos = (int)(canvas.getWidth()
+                            - p.getTextSize() * Math.abs("You win!".length() / 2)) / 2;
+                    while (xPos<0){
+                        p.setTextSize(p.getTextSize()-20);
+                        xPos = (int)(canvas.getWidth()
+                                - p.getTextSize() * Math.abs("You win!".length() / 2)) / 2;
+                    }
+                    canvas.drawText("You win!",xPos, yPos, p);
+                } else if (winOrLose == -1) {
+                    int xPos = (int)(canvas.getWidth()
+                            - p.getTextSize() * Math.abs("You lose!".length() / 2)) / 2;
+                    while (xPos<0){
+                        p.setTextSize(p.getTextSize()-20);
+                        xPos = (int)(canvas.getWidth()
+                                - p.getTextSize() * Math.abs("You win!".length() / 2)) / 2;
+                    }
+                    canvas.drawText("You lose!",xPos, yPos,p);
                 }
                 invalidate();
             }
@@ -390,4 +391,210 @@ public class MainActivity extends ActionBarActivity {
         }
 
     }
+
+    static class Receiver extends AsyncTask<Void,Void,String>{
+        WiFiDirectBroadcastReceiver.SocketReader socketReader;
+        @Override
+        protected String doInBackground(Void... voids) {
+            socketReader = ((WiFiDirectBroadcastReceiver)mReceiver).socketReader;
+            String line = socketReader.recv();
+            return line;
+        }
+    }
+
+    static class Sender extends AsyncTask<String,Void,Void> {
+        WiFiDirectBroadcastReceiver.SocketReader socketReader;
+        @Override
+        protected Void doInBackground(String... strings) {
+            socketReader = ((WiFiDirectBroadcastReceiver)mReceiver).socketReader;
+            try {
+                int cnt = 0;
+                for (String string : strings) {
+                    socketReader.out.writeUTF(string);
+                }
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+            return null;
+        }
+    }
+
+    static void send(String s){
+        Sender sender = new Sender();
+        sender.execute(s);
+    }
+
+    static String recv(){
+        Receiver receiver = new Receiver();
+        receiver.execute();
+        String line = null;
+        try {
+            line = receiver.get();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        } catch (ExecutionException e) {
+            e.printStackTrace();
+        }
+        return line;
+    }
+
+    public static class RoomList extends ActionBarActivity {
+        String TAG = "PacRoom";
+        String[] roomList = null;
+        String myRoom = "";
+
+
+        @Override
+        protected void onCreate(Bundle savedInstanceState) {
+            super.onCreate(savedInstanceState);
+            setContentView(R.layout.activity_room_list);
+            ListView listView = (ListView) findViewById(R.id.listView);
+            listView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+                public void onItemClick(AdapterView<?> parent, View view,
+                                        int position, long id) {
+                    Log.d(TAG, "itemClick: position = " + position + ", id = "
+                            + id);
+                    String checkedName = ((TextView) view).getText().toString();
+                    if (checkedName.substring(0, 2).equals(">>")) {
+                        myRoom = "";
+                        if (!isServer && !isLocalGame) {
+                            send("LeaveRoom");
+                        }else {
+                            hOut.sendEmptyMessage(User.LEAVE_ROOM);
+                        }
+                        RefreshRoomList();
+                    } else if (myRoom.equals("")) {
+                        String name = checkedName.substring(0, checkedName.length() - 6);
+                        if (!isServer && !isLocalGame) {
+                            send("EnterRoom:" + name);
+                            String answer = recv();
+                            if (answer.equals("success")) {
+                                GetRoom(name);
+                            }
+                        } else {
+                            Message msg = hOut.obtainMessage(User.ENTER_ROOM,name);
+                            hOut.sendMessage(msg);
+
+                        }
+                    }
+                }
+            });
+            RefreshRoomList();
+        }
+
+        public void RefreshRoomList() {
+            String line = "empty";
+            if (!isServer && !isLocalGame) {
+                send("RefreshRoomList");
+                line = recv();
+            } else {
+                hOut.sendEmptyMessage(User.REFRESH);
+                line = roomListString;
+            }
+            Log.d(TAG, line);
+            if (isServer) myRoom = user.myRoomName;
+                if (!line.equals("empty")) {
+                    roomList = line.split(":");
+//                    for (String string : roomList) {
+                    for(int i=0;i<roomList.length;i++){
+                        if (roomList[i].substring(0, roomList[i].length() - 6).equals(myRoom)) {
+                            roomList[i] = ">>" + roomList[i] + "<<";
+                        }
+                    }
+                    ListView listView = (ListView) findViewById(R.id.listView);
+                    ArrayAdapter<String> adapter = new ArrayAdapter<String>(this,
+                            android.R.layout.simple_list_item_1, roomList);
+                    listView.setAdapter(adapter);
+                } else {
+                    roomList = null;
+                    ListView listView = (ListView) findViewById(R.id.listView);
+                    ArrayAdapter<String> adapter = new ArrayAdapter<String>(this,
+                            android.R.layout.simple_list_item_1, new LinkedList<String>());
+                    listView.setAdapter(adapter);
+                }
+        }
+
+        private void GetRoom(String name) {
+            myRoom = name;
+            RefreshRoomList();
+        }
+
+        @Override
+        public boolean onCreateOptionsMenu(Menu menu) {
+            // Inflate the menu; this adds items to the action bar if it is present.
+            getMenuInflater().inflate(R.menu.menu_room_list, menu);
+            return true;
+        }
+
+        @Override
+        public boolean onOptionsItemSelected(MenuItem item) {
+            // Handle action bar item clicks here. The action bar will
+            // automatically handle clicks on the Home/Up button, so long
+            // as you specify a parent activity in AndroidManifest.xml.
+            final int id = item.getItemId();
+
+            //noinspection SimplifiableIfStatement
+            if (id == R.id.item1) {
+                // 1. Instantiate an AlertDialog.Builder with its constructor
+                AlertDialog.Builder builder = new AlertDialog.Builder(this);
+
+                builder.setTitle(R.string.dialog_title);
+
+                final View view = (LinearLayout) getLayoutInflater()
+                        .inflate(R.layout.dialog, null);
+                builder.setView(view);
+
+                builder.setPositiveButton(R.string.ok, new DialogInterface.OnClickListener() {
+                    public void onClick(DialogInterface dialog, int id) {
+                        EditText roomNameText = (EditText) view.findViewById(R.id.editText);
+                        EditText numPlayersText = (EditText) view.findViewById(R.id.editText2);
+                        String roomName = roomNameText.getText().toString();
+                        String numPlayers = numPlayersText.getText().toString();
+                        if (roomName != null){
+                            if (!isServer && !isLocalGame) {
+                                String answer = null;
+                                send("CreateRoom:" + numPlayers+":"+roomName);
+                                answer = recv();
+                                RefreshRoomList();
+                                if (answer.equals("success")) {
+                                    GetRoom(roomName);
+                                }
+                            } else {
+                                Message msg = hOut.obtainMessage(User.NEW_ROOM,
+                                        Integer.valueOf(numPlayers),0,
+                                        roomName);
+                                hOut.sendMessage(msg);
+                            }
+                        }
+                    }
+                });
+                builder.setNegativeButton(R.string.cancel, new DialogInterface.OnClickListener() {
+                    public void onClick(DialogInterface dialog, int id) {
+                        // User cancelled the dialog
+                    }
+                });
+                AlertDialog dialog = builder.create();
+                dialog.show();
+                return true;
+            } else if (id == R.id.item2){
+                RefreshRoomList();
+            }
+
+            return super.onOptionsItemSelected(item);
+        }
+
+        @Override
+        public void onBackPressed() {
+            if (myRoom != "") {
+                myRoom = "";
+                if (!isServer && !isLocalGame) {
+                    send("LeaveRoom");
+                } else {
+                    hOut.sendEmptyMessage(User.LEAVE_ROOM);
+                }
+            }
+            super.onBackPressed();
+        }
+    }
+
 }

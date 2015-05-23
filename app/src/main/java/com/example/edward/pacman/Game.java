@@ -425,6 +425,7 @@ public class Game extends  Thread{
                         if (catchedPlayers == playersNum) {
                             restarting = true;
                             characters.get(0).winnerId = -1;
+                            ShowResults();
                         }
                     } else {
                         board.setCellState(cell, 0);
@@ -534,6 +535,7 @@ public class Game extends  Thread{
                         if (catchedPlayers == playersNum) {
                             restarting = true;
                             characters.get(0).winnerId = -1;
+                            ShowResults();
                         }
                     }
                     if (foodFlag)
@@ -650,19 +652,28 @@ public class Game extends  Thread{
     }
 
     public void ShowResults() {
-        int maxId = -1;
+        boolean success = false;
         for (int i = 0; i < playersNum - catchedPlayers; i++) {
             Character max = characters.get(0);
             for (Character character : characters) {
-                if (max.myFood <= character.myFood && character.speed != 0)
+                if (max.myFood <= character.myFood && character.speed != 0) {
                     max = character;
+                    success = true;
+                }
             }
-            if (i==0) maxId = max.id;
+            if (i==0) characters.get(0).winnerId = max.id;
             max.myFood = 0;
             max.speed = 0;
             max.dist = 0;
             max.cell = new Point(0, i);
-            max.winnerId = maxId;
+        }
+        if (!success && characters.size() != 5){
+            Character max = characters.get(0);
+            for (Character character : characters) {
+                if (max.myFood <= character.myFood)
+                    max = character;
+            }
+            characters.get(0).winnerId = max.id;
         }
         restarting = true;
     }

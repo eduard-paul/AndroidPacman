@@ -26,6 +26,7 @@ public class Server extends Thread {
 
     public void addLocalUser(LocalUser localUser){
         allUsers.offer((User)localUser);
+        localUser.setServer(this);
     }
 
     private Socket getNewConn() {

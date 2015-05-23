@@ -28,7 +28,6 @@ public class RemoteUser extends User implements Runnable {
     DataInputStream din;
     String myRoomName = "";
     Room myRoom = null;
-    Server server;
     Thread secondReader;
 
     RemoteUser(Socket socketParam, Server server) throws IOException {
@@ -85,6 +84,9 @@ public class RemoteUser extends User implements Runnable {
 
             if (line == null) {
                 close();
+            } else if (line.contains("CreateRoom:")) {
+                if (myRoom == null)
+                    CreateRoom(line);
             } else if ("RefreshRoomList".equals(line)) {
                 SendRoomList();
             } else if (line.contains("EnterRoom:")) {
@@ -112,6 +114,35 @@ public class RemoteUser extends User implements Runnable {
         }
     }
 
+    public synchronized void CreateRoom(String line) {
+        DataOutputStream out = new DataOutputStream(sout);
+        String strMaxPlayers = line.substring(11, 12);
+        int maxPlayers = Integer.parseInt(strMaxPlayers);
+        String name = line.substring(13);
+        boolean failed = false;
+        for (Room room : server.rooms) { // Check if the same already exists
+            if (room.name.equals(name))
+                failed = true;
+        }
+        if (!failed) {
+            myRoom = new Room(server, name, maxPlayers, this);
+            server.rooms.offer(myRoom);
+            myRoomName = name;
+
+            try {
+                out.writeUTF("success");
+                out.flush();
+            } catch (IOException e) {
+            }
+        } else {
+            try {
+                out.writeUTF("fail");
+                out.flush();
+            } catch (IOException e) {
+            }
+        }
+    }
+
     public synchronized void LeaveRoom() {
         if ("spectate".equals(myRoomName))
             myRoom.RemoveSpectator(this);
@@ -130,6 +161,11 @@ public class RemoteUser extends User implements Runnable {
             if (room.name.equals(name)) {
                 if (room.currPlayers < room.maxPlayers && !room.IsStarted()) {
                     room.AddPlayer(this);
+                    myRoomName = name;
+                    myRoom = room;
+                    failed = false;
+                } else {
+                    room.AddSpectator(this);
                     myRoomName = name;
                     myRoom = room;
                     failed = false;
@@ -237,6 +273,7 @@ public class RemoteUser extends User implements Runnable {
     public void SendStart() {
         try {
             dOut.writeUTF("StartGame");
+            dOut.writeInt(playerId);
             dOut.flush();
         } catch (IOException e) {
             e.printStackTrace();

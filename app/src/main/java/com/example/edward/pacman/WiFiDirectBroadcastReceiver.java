@@ -20,12 +20,11 @@ import java.io.InputStream;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.OutputStream;
-import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.net.SocketTimeoutException;
 import java.util.Collection;
 import java.util.Iterator;
-import java.util.List;
 
 /**
  * A BroadcastReceiver that notifies of important Wi-Fi p2p events.
@@ -121,11 +120,9 @@ public class WiFiDirectBroadcastReceiver extends BroadcastReceiver {
 //                    }).start();
 
                     if (server != null) return;
-                    mActivity.remote=false;
+                    mActivity.isServer =true;
                     server = new Server(serverPort);
                     server.addLocalUser(mActivity.user);
-                    mActivity.user.CreateRoom("Default",2);
-                    server.rooms.offer(mActivity.user.myRoom);
                     server.start();
 
                 } else if (info.groupFormed) {
@@ -160,7 +157,7 @@ public class WiFiDirectBroadcastReceiver extends BroadcastReceiver {
 //                    }).start();
 
                     if(socketReader != null) return;
-                    mActivity.remote = true;
+                    mActivity.isServer = false;
                     socketReader = new SocketReader(groupOwnerAddress,serverPort);
                     thread = new Thread(socketReader);
 //                    thread.setDaemon(true);
@@ -252,10 +249,10 @@ public class WiFiDirectBroadcastReceiver extends BroadcastReceiver {
 
                 RefreshRoomList();
 
-                Send("EnterRoom:" + "Default");
-                Log.d(TAG, "EnterRoom:" + "Default");
-                String answer = recv();
-                Log.d(TAG, "Answer:" + answer);
+//                Send("EnterRoom:" + "Default");
+//                Log.d(TAG, "EnterRoom:" + "Default");
+//                String answer = recv();
+//                Log.d(TAG, "Answer:" + answer);
 
             } catch (IOException e) {
                 e.printStackTrace();
@@ -270,6 +267,7 @@ public class WiFiDirectBroadcastReceiver extends BroadcastReceiver {
                         line = din.readUTF();
                     while (!line.equals("StartGame"));
 
+                    int playerId = din.readInt();
 //                    board = (int[][]) doin.readObject();
 
 //                    StartGame();
@@ -286,12 +284,25 @@ public class WiFiDirectBroadcastReceiver extends BroadcastReceiver {
 
                     while (true) {
                         mActivity.gs = (GameState) doin.readObject();
+                        if (MainActivity.gs.cs.size() != 0 && playerId != -1) {
+                            if (MainActivity.gs.cs.get(0).winnerId == 0) {
+                                MainActivity.winOrLose = 0;
+                            } else if (MainActivity.gs.cs.get(0).winnerId == playerId) {
+                                MainActivity.winOrLose = 1;
+                            } else {
+                                MainActivity.winOrLose = -1;
+                            }
+                        }
                     }
 
-                } catch (Exception e) {
+                } catch (SocketTimeoutException e) {
 //                    mActivity.gs = null;
-                    if (e.getMessage() == null || !e.getMessage().equals("Read timed out"))
-                        Disconnect();
+//                    if (e.getMessage() == null || !e.getMessage().equals("Read timed out")) {
+//                        String msg = e.getMessage();
+//                        Disconnect();
+//                    }
+                } catch (Exception e){
+                    Disconnect();
                 }
 
             }
